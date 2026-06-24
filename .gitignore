@@ -1,0 +1,11 @@
+__pycache__/
+*.py[co]
+*.DS_Store
+.ipynb_checkpoints/
+
+# --- Generated experiment outputs ---
+experiments/results/
+experiments/plots/
+
+# --- Paper PDF (read the published arXiv version instead) ---
+docs/*.pdf

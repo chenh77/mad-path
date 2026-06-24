@@ -1,0 +1,13 @@
+jax>=0.4
+jaxlib>=0.4
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+matplotlib>=3.7
+optax>=0.1.7
+blackjax>=1.0
+
+# Optional: used only by run_bayesian_gmm.py to fetch the Old Faithful
+# dataset. If not installed, a synthetic fallback with matching statistics
+# is used automatically.
+statsmodels>=0.14
