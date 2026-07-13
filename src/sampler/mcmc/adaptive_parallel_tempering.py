@@ -142,7 +142,7 @@ def _swap_single_random_pair(
 
 @partial(
     jit,
-    static_argnames=("log_density", "num_iterations", "num_mala_steps", "burnin", "use_doe"),
+    static_argnames=("log_density", "num_iterations", "num_mala_steps", "burnin", "use_deo"),
 )
 def _scan_adaptive_parallel_tempering(
     log_density: LogDensity,
@@ -164,7 +164,7 @@ def _scan_adaptive_parallel_tempering(
     rho_max: float,
     log_step_size_min: float,
     log_step_size_max: float,
-    use_doe: bool = True,
+    use_deo: bool = True,
 ) -> tuple[Array, Array, Array, Array, Array, Array, Array, Array]:
     keys = random.split(rng_key, num_iterations)
     iteration_indices = jnp.arange(num_iterations)
@@ -176,7 +176,7 @@ def _scan_adaptive_parallel_tempering(
         inverse_temperatures = _inverse_temperatures_from_rho(rho)
         step_sizes = jnp.exp(log_step_sizes)
 
-        if use_doe:
+        if use_deo:
             move_key, even_swap_key, odd_swap_key = random.split(key, 3)
         else:
             move_key, swap_key = random.split(key, 2)
@@ -191,7 +191,7 @@ def _scan_adaptive_parallel_tempering(
             move_key,
         )
 
-        if use_doe:
+        if use_deo:
             states, base_logps, even_accepts, even_attempts = _swap_sweep_with_pair_stats(
                 states, base_logps, inverse_temperatures, even_swap_key, start_index=0,
             )
@@ -318,7 +318,7 @@ def adaptive_parallel_tempering(
     rho_bounds: tuple[float, float] = (-20.0, 5.0),
     log_step_size_bounds: tuple[float, float] = (-20.0, 5.0),
     store_history: bool = False,
-    use_doe: bool = True,
+    use_deo: bool = True,
     discard_burnin: bool = True,
 ) -> tuple[Array, dict[str, Array]]:
     """
@@ -349,7 +349,7 @@ def adaptive_parallel_tempering(
         rho_bounds: Projection interval for temperature log-gap parameters.
         log_step_size_bounds: Projection interval for MALA log step sizes.
         store_history: Include tuning histories in diagnostics when true.
-        use_doe: If ``True`` (default), use deterministic odd-even (DOE) swap
+        use_deo: If ``True`` (default), use deterministic even-odd (DEO) swap
             sweeps — both an even and an odd pass every iteration. If ``False``,
             use vanilla PT: one randomly chosen adjacent pair is proposed per
             iteration.
@@ -479,7 +479,7 @@ def adaptive_parallel_tempering(
         rho_max,
         log_step_size_min,
         log_step_size_max,
-        use_doe,
+        use_deo,
     )
 
     start = burnin if discard_burnin else 0

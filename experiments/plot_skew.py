@@ -42,7 +42,7 @@ target_mus   = data["target_mus"]      # (K, D) — true mode centers
 SAMPLERS = [
     ("MAD-Path", data["mad_path_samples"],  None),
     ("APT",      data["apt_samples"],       None),
-    ("APT-DEO",  data["apt_doe_samples"],   None),
+    ("APT-DEO",  data["apt_deo_samples"],   None),
     ("TT",       data["tt_samples"],        None),
     ("AIS",      data["ais_samples"],       data["ais_log_weights"]),
     ("SMC",      data["smc_samples"],       data["smc_log_weights"]),

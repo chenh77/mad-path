@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Violin plot + summary table comparing MAD-path, APT, and APT+DEO on the
+Violin plot + summary table comparing MAD-path and APT+DEO on the
 Bayesian GMM (Old Faithful) target across multiple seeds (paper Figure 6).
 
 Plot: mode-1 weight  (true = 0.5, dashed line).
@@ -41,7 +41,6 @@ matplotlib.rcParams.update({
 
 METHODS = [
     ("MAD-path", "mad",     "#999999"),
-    ("APT",      "apt",     "#999999"),
     ("APT-DEO",  "apt_deo", "#999999"),
 ]
 

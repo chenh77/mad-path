@@ -178,6 +178,7 @@ def main(output: str) -> None:
     print("\nStep 5: Training nonequil DDS...")
     t0 = time.time()
     ik, tk, sk = jr.split(jr.PRNGKey(1), 3)
+    mad_key = jr.PRNGKey(11)
 
     config = NonequilibriumDDSConfig(
         T_FINAL=T_FINAL, D=D, n_particles=N_TRAIN,
@@ -209,7 +210,7 @@ def main(output: str) -> None:
         initial_state=x0_scaled,
         num_steps=NUM_STEPS_MAD,
         n_diffusion_steps=N_DIFFUSION_STEPS,
-        rng_key=sk,
+        rng_key=mad_key,
         with_correction=True,
         n_mala_steps=0,
     )
@@ -217,20 +218,20 @@ def main(output: str) -> None:
     mad_samples = mad_samples[np.isfinite(mad_samples).all(axis=1)]
     print(f"  {time.time()-t0:.1f}s  accept={float(mad_accept):.3f}  n={mad_samples.shape[0]}")
 
-    # ── Step 7: APT-DEO chain 1 (init: all zeros) ────────────────────────────
-    print("\nStep 7: APT-DEO chain 1 (init=zeros)...")
+    # ── Step 7: APT-DEO chain 1 (init: all 0.5) ──────────────────────────────
+    print("\nStep 7: APT-DEO chain 1 (init=0.5)...")
     t0 = time.time()
     apt_sched = jnp.power(0.05, jnp.linspace(0, 1, N_TEMPS_APT))
     apt_deo_samples_1, apt_deo_diag_1 = adaptive_parallel_tempering(
         log_density=target.log_prob,
-        initial_states=jnp.zeros((N_TEMPS_APT, D)),
+        initial_states=jnp.full((N_TEMPS_APT, D), 0.5),
         initial_inverse_temperature_schedule=apt_sched,
         num_iterations=N_ITER_APT,
         burnin=BURNIN_APT,
         initial_step_size=APT_STEP,
         num_mala_steps=NUM_MALA_STEPS,
         rng_key=jr.PRNGKey(4),
-        use_doe=True,
+        use_deo=True,
         discard_burnin=False,
         gamma_temperature_base=GAMMA_BASE_APT,
         gamma_mala_base=GAMMA_BASE_APT,
@@ -255,7 +256,7 @@ def main(output: str) -> None:
         initial_step_size=APT_STEP,
         num_mala_steps=NUM_MALA_STEPS,
         rng_key=jr.PRNGKey(5),
-        use_doe=True,
+        use_deo=True,
         discard_burnin=False,
         gamma_temperature_base=GAMMA_BASE_APT,
         gamma_mala_base=GAMMA_BASE_APT,

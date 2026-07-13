@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Run MAD-Path, APT, and APT+DEO on the Bayesian GMM target (Old Faithful data).
+Run MAD-Path and APT+DEO on the Bayesian GMM target (Old Faithful data).
 
 Two-phase workflow (matches sweep_bayesian_gmm.sh):
   --mode prepare  Run AL, fit GMM, train DDS. Save shared state to --shared_file.
@@ -10,7 +10,7 @@ Seed controls: APT_INIT_KEY = APT_RUN_KEY = MAD_KEY = jr.PRNGKey(seed).
 AL and DDS training are deterministic (no seed) and shared across all runs.
 
 Output per seed:
-  seed_NNNN.npz with {apt,apt_deo,mad}_{mode1_weight,crossings_per_1k}
+  seed_NNNN.npz with {apt_deo,mad}_{mode1_weight,crossings_per_1k}
   compatible with plot_bayesian_gmm.py.
 
 Usage (from the repo root):
@@ -46,14 +46,13 @@ from sampler.vi.utils import train
 from sampler.mcmc.mad_path import run_nonequil_mad_path
 from sampler.mcmc.adaptive_parallel_tempering import adaptive_parallel_tempering
 
-# ── APT / APT+DEO ─────────────────────────────────────────────────────────────
+# ── APT+DEO ────────────────────────────────────────────────────────────────────
 N_TEMPS_APT    = 50
 N_ITER_APT     = 12000
 BURNIN_APT     = 2000
 APT_STEP       = 0.05
 APT_REF_STD    = 1.0
 APT_MALA_STEPS = 10
-APT_GAMMA_BASE     = 9.2
 APT_DEO_GAMMA_BASE = 0.25
 
 # ── Annealed Langevin ─────────────────────────────────────────────────────────
@@ -315,27 +314,6 @@ def main_run(seed: int, shared_file: str, output_dir: str) -> None:
     apt_schedule    = jnp.power(0.05, jnp.linspace(0, 1, N_TEMPS_APT))
     apt_init_states = APT_REF_STD * jr.normal(apt_init_key, (N_TEMPS_APT, D))
 
-    # ── APT (no DOE) ──────────────────────────────────────────────────────────
-    print(f"[seed={seed}] APT...")
-    t0 = time.time()
-    apt_samples, apt_diag = adaptive_parallel_tempering(
-        log_density=target.log_prob,
-        initial_states=apt_init_states,
-        initial_inverse_temperature_schedule=apt_schedule,
-        num_iterations=N_ITER_APT,
-        burnin=BURNIN_APT,
-        initial_step_size=APT_STEP,
-        num_mala_steps=APT_MALA_STEPS,
-        rng_key=apt_run_key,
-        use_doe=False,
-        gamma_temperature_base=APT_GAMMA_BASE,
-        gamma_mala_base=APT_GAMMA_BASE,
-    )
-    apt_samples = np.asarray(apt_samples)
-    apt_time_s  = time.time() - t0
-    print(f"  swap_accept={float(apt_diag['swap_acceptance_rate']):.3f}  "
-          f"n={apt_samples.shape[0]}  ({apt_time_s:.1f}s)")
-
     # ── APT+DEO ───────────────────────────────────────────────────────────────
     print(f"[seed={seed}] APT+DEO...")
     t0 = time.time()
@@ -348,7 +326,7 @@ def main_run(seed: int, shared_file: str, output_dir: str) -> None:
         initial_step_size=APT_STEP,
         num_mala_steps=APT_MALA_STEPS,
         rng_key=apt_run_key,
-        use_doe=True,
+        use_deo=True,
         gamma_temperature_base=APT_DEO_GAMMA_BASE,
         gamma_mala_base=APT_DEO_GAMMA_BASE,
     )
@@ -385,7 +363,6 @@ def main_run(seed: int, shared_file: str, output_dir: str) -> None:
     print(f"  accept={acc_mad:.3f}  n={mad_samples.shape[0]}  ({mad_time_s:.1f}s)")
 
     # ── Compute metrics ───────────────────────────────────────────────────────
-    apt_m     = _compute_metrics(apt_samples,     mode_centers)
     apt_deo_m = _compute_metrics(apt_deo_samples, mode_centers)
     mad_m     = _compute_metrics(mad_samples,     mode_centers)
 
@@ -395,28 +372,21 @@ def main_run(seed: int, shared_file: str, output_dir: str) -> None:
         seed=seed,
         mode_centers=mode_centers,
         # raw samples
-        apt_samples=apt_samples,
         apt_deo_samples=apt_deo_samples,
         mad_samples=mad_samples,
         # metrics expected by plot_bayesian_gmm.py
-        apt_mode1_weight=apt_m["mode1_weight"],
-        apt_crossings_per_1k=apt_m["crossings_per_1k"],
         apt_deo_mode1_weight=apt_deo_m["mode1_weight"],
         apt_deo_crossings_per_1k=apt_deo_m["crossings_per_1k"],
         mad_mode1_weight=mad_m["mode1_weight"],
         mad_crossings_per_1k=mad_m["crossings_per_1k"],
         # diagnostics
         acc_mad=acc_mad,
-        apt_swap_rate=float(apt_diag["swap_acceptance_rate"]),
         apt_deo_swap_rate=float(apt_deo_diag["swap_acceptance_rate"]),
         # wall-clock time per method (seconds)
-        apt_time_s=apt_time_s,
         apt_deo_time_s=apt_deo_time_s,
         mad_time_s=mad_time_s,
     )
     print(f"  Saved → {out_path}")
-    print(f"  APT:     mode1={apt_m['mode1_weight']:.3f}  "
-          f"cross/1k={apt_m['crossings_per_1k']:.2f}")
     print(f"  APT+DEO: mode1={apt_deo_m['mode1_weight']:.3f}  "
           f"cross/1k={apt_deo_m['crossings_per_1k']:.2f}")
     print(f"  MAD:     mode1={mad_m['mode1_weight']:.3f}  "

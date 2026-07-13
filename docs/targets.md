@@ -108,11 +108,11 @@ Problem originally from Ihler et al. (2005, JMLR); analyzed in several MCMC-for-
 ## Seemingly unrelated regression (`sur.py`)
 
 `SURTarget`: profile-likelihood target for the SUR model. Each response `m` is regressed on its
-own covariate set, `y_m = X_m beta_m + eps_m`, with `eps ~ MN(0, Sigma kron I_T)`. The profile
+own covariate set, `y_m = X_m beta_m + eps_m`, with `eps ~ MN(0, Sigma kron I_N)`. The profile
 likelihood integrates out `Sigma` analytically:
 
 ```
-l(beta) = -(T*M/2) log(2*pi) - (T/2) log|Sigma_hat(beta)| - T*M/2
+l(beta) = -(N*M/2) log(2*pi) - (N/2) log|Sigma_hat(beta)| - N*M/2
 ```
 
-where `Sigma_hat(beta)_{jk} = (1/T) r_j(beta)^T r_k(beta)` and `r_m(beta) = y_m - X_m beta_m`.
+where `Sigma_hat(beta)_{jk} = (1/N) r_j(beta)^T r_k(beta)` and `r_m(beta) = y_m - X_m beta_m`.

@@ -2,8 +2,8 @@
 
 Code accompanying the paper *Markov Chain Monte Carlo with Diffusion Paths*
 (paper link: coming soon), introducing the
-**Metropolis-adjusted diffusion path (MAD-Path)** sampler — an MCMC algorithm that uses a
-trained diffusion model to propose structured, nonlocal moves between isolated regions of
+**Metropolis-adjusted diffusion path (MAD-Path)** sampler — an MCMC algorithm that uses
+trained scores to propose structured, nonlocal moves between isolated regions of
 probability mass, accepted/rejected with a Metropolis–Hastings correction so the chain remains
 exact.
 

@@ -8,8 +8,8 @@ Pipeline (mirrors dds_synthetic.ipynb):
        (sampler.vi.mode_initialization.initialize_modes_from_langevin) →  reference process
   3. Train nonequil DDS   →  score network
   4. MAD-Path MCMC        →  chain from score-corrected kernel
-  5. APT (no DOE)
-  6. APT + DOE
+  5. APT (no DEO)
+  6. APT + DEO
   7. Tempered Transition
   8. AIS
   9. SMC
@@ -175,62 +175,59 @@ def main(seed: int = 0, output: str | None = None):
     results["dds_samples"]     = dds_samples
     results["dds_log_weights"] = dds_log_w
 
-    # ── 5. APT (no DOE) ───────────────────────────────────────────────────────
-    print("Step 5: APT (no DOE)...")
+    # ── 5. APT (no DEO) ───────────────────────────────────────────────────────
+    print("Step 5: APT (no DEO)...")
     t0 = time.time()
     n_temps   = 20
-    apt_sched = jnp.power(0.1, jnp.linspace(0, 1, n_temps))
+    apt_sched = jnp.power(0.02, jnp.linspace(0, 1, n_temps))
     key, sk = jr.split(key)
     apt_samples, apt_diag = adaptive_parallel_tempering(
         log_density=log_prob,
         initial_states=jr.normal(sk, (n_temps, D)),
-        initial_inverse_temperature_schedule=jnp.power(0.1, jnp.linspace(0, 1, n_temps)),
-        num_iterations=6000,
-        burnin=1200,
-        initial_step_size=0.5,
+        initial_inverse_temperature_schedule=apt_sched,
+        num_iterations=10000,
+        burnin=2000,
+        initial_step_size=0.02,
         num_mala_steps=10,
         rng_key=jr.PRNGKey(seed + 10),
-        use_doe=False,
+        use_deo=False,
     )
     apt_samples = np.asarray(apt_samples)
     print(f"  done in {time.time()-t0:.1f}s  swap_accept={float(apt_diag['swap_acceptance_rate']):.3f}  n={apt_samples.shape[0]}")
     results["apt_samples"] = apt_samples
 
-    # ── 6. APT + DOE ──────────────────────────────────────────────────────────
-    print("Step 6: APT + DOE...")
+    # ── 6. APT + DEO ──────────────────────────────────────────────────────────
+    print("Step 6: APT + DEO...")
     t0 = time.time()
     key, sk = jr.split(key)
-    apt_doe_samples, apt_doe_diag = adaptive_parallel_tempering(
+    apt_deo_samples, apt_deo_diag = adaptive_parallel_tempering(
         log_density=log_prob,
         initial_states=jr.normal(sk, (n_temps, D)),
         initial_inverse_temperature_schedule=jnp.power(0.9, jnp.linspace(0, 1, n_temps)),
-        num_iterations=6000,
-        burnin=1200,
+        num_iterations=10000,
+        burnin=2000,
         initial_step_size=0.5,
         num_mala_steps=10,
         rng_key=jr.PRNGKey(seed + 10),
-        use_doe=True,
+        use_deo=True,
     )
-    apt_doe_samples = np.asarray(apt_doe_samples)
-    print(f"  done in {time.time()-t0:.1f}s  swap_accept={float(apt_doe_diag['swap_acceptance_rate']):.3f}  n={apt_doe_samples.shape[0]}")
-    results["apt_doe_samples"] = apt_doe_samples
+    apt_deo_samples = np.asarray(apt_deo_samples)
+    print(f"  done in {time.time()-t0:.1f}s  swap_accept={float(apt_deo_diag['swap_acceptance_rate']):.3f}  n={apt_deo_samples.shape[0]}")
+    results["apt_deo_samples"] = apt_deo_samples
 
-    # ── 7. Tempered Transition (APT no-DOE adapted schedule + per-level steps) ─
-    print("Step 7: Tempered Transition (APT-adapted schedule)...")
+    # ── 7. Tempered Transition (hand-tuned schedule) ────────────────────────────
+    print("Step 7: Tempered Transition (hand-tuned schedule)...")
     t0 = time.time()
-    _tt_betas = apt_diag["final_inverse_temperatures"]
-    _tt_steps = apt_diag["final_step_sizes"]
-    _tt_mask  = _tt_betas >= 0.03         # clip schedule to avoid extreme high-T levels
-    _tt_betas = _tt_betas[_tt_mask]
-    _tt_steps = _tt_steps[_tt_mask]
+    _tt_betas = jnp.geomspace(1.0, 0.05, 10)
+    _tt_steps = 0.01 / jnp.sqrt(_tt_betas)
     tt_samples, tt_accept = tempered_transition(
         log_density=log_prob,
         initial_state=jr.normal(jr.PRNGKey(seed + 30), (D,)),
         inverse_temperature_schedule=_tt_betas,
-        num_iterations=5000,
-        burnin=1000,
+        num_iterations=10000,
+        burnin=2000,
         step_size=_tt_steps,
-        num_steps=20,
+        num_steps=10,
         transition_type="mala",
         rng_key=jr.PRNGKey(seed + 31),
     )
@@ -245,9 +242,9 @@ def main(seed: int = 0, output: str | None = None):
         log_density=log_prob,
         D=D,
         ref_std=REF_STD,
-        num_samples=2000,
+        num_samples=10_000,
         step_size=0.75,
-        num_steps=10,
+        num_steps=15,
         target_cess=0.5,
         max_levels=500,
         rng_key=jr.PRNGKey(seed + 40),
@@ -270,7 +267,7 @@ def main(seed: int = 0, output: str | None = None):
         log_density=log_prob,
         D=D,
         ref_std=REF_STD,
-        num_particles=2000,
+        num_particles=10_000,
         step_size=0.5,
         num_steps=10,
         target_cess=0.5,

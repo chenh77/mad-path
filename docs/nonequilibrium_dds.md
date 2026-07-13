@@ -86,14 +86,12 @@ where eps_k ~ N(0, I) and dt_k = t_{k+1} - t_k.
 
 ### 1.5 Score Parametrization
 
-f_theta uses the PIS-GRAD ansatz (target-augmented parametrization):
+All experiments use `score_parametrization="base"`: f_theta is a plain state MLP
+over (x, t), with no direct dependence on the target score.
 
 ```
-f_theta(x, t) = NN_state(x, t) + NN_gate(t) * grad log pi(x)
+f_theta(x, t) = NN_state(x, t)
 ```
-
-This gives the network direct access to the target score, which helps at
-times t near T where the process should track pi.
 
 ---
 
@@ -236,7 +234,7 @@ better-conditioned optimization landscape:
 
 ---
 
-## 7. Reference Files
+## 5. Reference Files
 
 | File | Role |
 |------|------|

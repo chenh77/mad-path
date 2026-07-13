@@ -8,8 +8,8 @@ Pipeline (mirrors dds.ipynb):
   2. k-means GMM fit    →  reference process for nonequil DDS
   3. Train nonequil DDS →  score network
   4. MAD-Path MCMC      →  chain from score-corrected kernel
-  5. APT (no DOE)
-  6. APT + DOE
+  5. APT (no DEO)
+  6. APT + DEO
   7. Tempered Transition
   8. AIS
   9. SMC
@@ -229,66 +229,70 @@ def main(seed: int = 0, output: str | None = None):
     results["dds_samples"]     = dds_samples
     results["dds_log_weights"] = dds_log_w
 
-    # ── 5. APT (no DOE) ───────────────────────────────────────────────────────
-    print("Step 5: APT (no DOE)...")
+    # ── 5. APT (no DEO) ───────────────────────────────────────────────────────
+    print("Step 5: APT (no DEO)...")
     t0 = time.time()
     n_temps    = 20
-    apt_sched  = jnp.power(0.5, jnp.linspace(0, 1, n_temps))
+    apt_sched  = jnp.power(0.01, jnp.linspace(0, 1, n_temps))
     key, sk = jr.split(key)
     apt_samples, apt_diag = adaptive_parallel_tempering(
         log_density=log_target_density,
         initial_states=jr.normal(sk, (n_temps, D)),
         initial_inverse_temperature_schedule=apt_sched,
-        num_iterations=6000,
-        burnin=1200,
-        initial_step_size=0.5,
+        num_iterations=12500,
+        burnin=2500,
+        initial_step_size=0.01,
         num_mala_steps=10,
         rng_key=jr.PRNGKey(seed + 10),
-        use_doe=False,
+        use_deo=False,
     )
     apt_samples = np.asarray(apt_samples)
     print(f"  done in {time.time()-t0:.1f}s  swap_accept={float(apt_diag['swap_acceptance_rate']):.3f}  "
           f"n_samples={apt_samples.shape[0]}")
     results["apt_samples"] = apt_samples
 
-    # ── 6. APT + DOE ─────────────────────────────────────────────────────────
-    print("Step 6: APT + DOE...")
+    # ── 6. APT + DEO ─────────────────────────────────────────────────────────
+    print("Step 6: APT + DEO...")
     t0 = time.time()
     key, sk = jr.split(key)
-    apt_doe_samples, apt_doe_diag = adaptive_parallel_tempering(
+    apt_sched  = jnp.power(0.3, jnp.linspace(0, 1, n_temps))
+    apt_deo_samples, apt_deo_diag = adaptive_parallel_tempering(
         log_density=log_target_density,
         initial_states=jr.normal(sk, (n_temps, D)),
         initial_inverse_temperature_schedule=apt_sched,
-        num_iterations=6000,
-        burnin=1200,
-        initial_step_size=0.5,
+        num_iterations=12500,
+        burnin=2500,
+        initial_step_size=0.3,
         num_mala_steps=10,
         rng_key=jr.PRNGKey(seed + 10),
-        use_doe=True,
+        use_deo=True,
+        # Tightened from the default (-20, 5): at the hot end here MALA
+        # acceptance sits pinned near 1.0, so Robbins-Monro step-size
+        # adaptation can inflate unboundedly and overflow float32. This
+        # bound rate-limits rho updates without changing the returned
+        # cold-chain samples.
+        rho_bounds=(-20.0, 1.5),
     )
-    apt_doe_samples = np.asarray(apt_doe_samples)
-    print(f"  done in {time.time()-t0:.1f}s  swap_accept={float(apt_doe_diag['swap_acceptance_rate']):.3f}  "
-          f"n_samples={apt_doe_samples.shape[0]}")
-    results["apt_doe_samples"] = apt_doe_samples
+    apt_deo_samples = np.asarray(apt_deo_samples)
+    print(f"  done in {time.time()-t0:.1f}s  swap_accept={float(apt_deo_diag['swap_acceptance_rate']):.3f}  "
+          f"n_samples={apt_deo_samples.shape[0]}")
+    results["apt_deo_samples"] = apt_deo_samples
 
-    # ── 7. Tempered Transition (APT-adapted schedule + per-level step sizes) ──
-    print("Step 7: Tempered Transition (APT-adapted schedule)...")
+    # ── 7. Tempered Transition (hand-tuned schedule) ────────────────────────────
+    print("Step 7: Tempered Transition (hand-tuned schedule)...")
     t0 = time.time()
-    _tt_betas = apt_diag["final_inverse_temperatures"]
-    _tt_steps = apt_diag["final_step_sizes"]
-    _tt_mask  = _tt_betas >= 0.03
-    _tt_betas = _tt_betas[_tt_mask]
-    _tt_steps = _tt_steps[_tt_mask]
+    _tt_betas = jnp.geomspace(1.0, 0.02, 15)
+    _tt_steps = 0.005 / jnp.sqrt(_tt_betas)
     tt_samples, tt_accept = tempered_transition(
         log_density=log_target_density,
         initial_state=jr.normal(jr.PRNGKey(seed + 30), (D,)),
         inverse_temperature_schedule=_tt_betas,
-        num_iterations=5000,
-        burnin=1000,
+        num_iterations=12500,
+        burnin=2500,
         step_size=_tt_steps,
-        num_steps=20,
+        num_steps=10,
         transition_type="mala",
-        rng_key=jr.PRNGKey(seed + 31),
+        rng_key=jr.PRNGKey(seed + 30),
     )
     tt_samples = np.asarray(tt_samples)
     print(f"  done in {time.time()-t0:.1f}s  accept={float(tt_accept):.3f}  "
@@ -302,7 +306,7 @@ def main(seed: int = 0, output: str | None = None):
         log_density=log_target_density,
         D=D,
         ref_std=REF_STD,
-        num_samples=2000,
+        num_samples=10_000,
         step_size=0.25,
         num_steps=10,
         target_cess=0.5,
@@ -327,7 +331,7 @@ def main(seed: int = 0, output: str | None = None):
         log_density=log_target_density,
         D=D,
         ref_std=REF_STD,
-        num_particles=2000,
+        num_particles=10_000,
         step_size=0.8,
         num_steps=10,
         target_cess=0.5,

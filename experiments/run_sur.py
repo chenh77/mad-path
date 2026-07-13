@@ -75,17 +75,17 @@ N_DIFFUSION_TRAIN = 20
 DDS_LR            = 1e-2
 
 # ── MAD-Path ──────────────────────────────────────────────────────────────────
-NUM_STEPS_MAD   = 12_000
+NUM_STEPS_MAD   = 10_000
 N_DIFFUSION_MAD = 100
 N_SAMP_DDS      = 2000   # DDS samples used to pick MAD-Path initial state
 
 # ── APT-DEO (equal gradient budget to notebook PT: 5000×10×20 = 1M) ──────────
 N_TEMPS_APT    = 10
-N_ITER_APT     = 5000
-BURNIN_APT     = 2000   # adaptation phase; post-burnin samples = N_ITER - BURNIN
+N_ITER_APT     = 12_000
+BURNIN_APT     = 2_000   # adaptation phase; post-burnin samples = N_ITER - BURNIN
 NUM_MALA_STEPS = 20
 INIT_STEP_SIZE = 0.02
-GAMMA_BASE     = 0.25    # base learning rate for APT-DEO temp and MALA step size adaptation
+GAMMA_BASE     = 0.2    # base learning rate for APT-DEO temp and MALA step size adaptation
 
 # ── NUTS ──────────────────────────────────────────────────────────────────────
 NUTS_WARMUP = 5_000
@@ -93,14 +93,14 @@ NUTS_N_SAMP = 50_000
 
 # ── PRNG keys (matching notebook) ─────────────────────────────────────────────
 AL_KEY        = jr.PRNGKey(0)
-DDS_KEY       = jr.PRNGKey(9)    # split into init / train / sample keys
-MAD_KEY       = jr.PRNGKey(106)
+DDS_KEY       = jr.PRNGKey(4)    # split into init / train / sample keys
+MAD_KEY       = jr.PRNGKey(101)
 APT_INIT_KEY  = jr.PRNGKey(20)
 APT_RUN_KEY   = jr.PRNGKey(21)
 APT_INIT_KEY2 = jr.PRNGKey(20)   # warm start 1: near mode 1
 APT_RUN_KEY2  = jr.PRNGKey(21)
-APT_INIT_KEY3 = jr.PRNGKey(30)   # warm start 2: near mode 1, different seed
-APT_RUN_KEY3  = jr.PRNGKey(31)
+APT_INIT_KEY3 = jr.PRNGKey(31)   # warm start 2: near mode 1, different seed
+APT_RUN_KEY3  = jr.PRNGKey(93)
 NUTS_WARMUP_KEY = jr.PRNGKey(50)
 NUTS_RUN_KEY    = jr.PRNGKey(51)
 
@@ -295,7 +295,7 @@ def main(output_dir: str) -> None:
         initial_step_size=INIT_STEP_SIZE,
         num_mala_steps=NUM_MALA_STEPS,
         rng_key=APT_RUN_KEY,
-        use_doe=True,
+        use_deo=True,
         gamma_temperature_base=GAMMA_BASE,   # more aggressive temp adaptation for cold start
         gamma_mala_base=GAMMA_BASE,          # more aggressive MALA adaptation for cold start
     )
@@ -332,7 +332,7 @@ def main(output_dir: str) -> None:
         initial_step_size=INIT_STEP_SIZE,
         num_mala_steps=NUM_MALA_STEPS,
         rng_key=APT_RUN_KEY2,
-        use_doe=True,
+        use_deo=True,
         gamma_temperature_base=GAMMA_BASE,   # more aggressive temp adaptation for warm start
         gamma_mala_base=GAMMA_BASE,          # more aggressive MALA adaptation for
     )
@@ -368,7 +368,7 @@ def main(output_dir: str) -> None:
         initial_step_size=INIT_STEP_SIZE,
         num_mala_steps=NUM_MALA_STEPS,
         rng_key=APT_RUN_KEY3,
-        use_doe=True,
+        use_deo=True,
         gamma_temperature_base=GAMMA_BASE,
         gamma_mala_base=GAMMA_BASE,
     )

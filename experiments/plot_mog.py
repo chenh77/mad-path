@@ -56,7 +56,7 @@ data = np.load(args.results)
 SAMPLERS = [
     ("Mad-Path", data["mad_path_samples"],  None),
     ("APT",      data["apt_samples"],       None),
-    ("APT-DEO",  data["apt_doe_samples"],   None),
+    ("APT-DEO",  data["apt_deo_samples"],   None),
     ("TT",       data["tt_samples"],        None),
     ("AIS",      data["ais_samples"],       data["ais_log_weights"]),
     ("SMC",      data["smc_samples"],       data["smc_log_weights"]),

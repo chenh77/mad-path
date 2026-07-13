@@ -57,7 +57,7 @@ _TRUE_EDGE     = "black"
 _LINK_COLOR    = "lightgray"   # light gray for observed distance links
 _N_PLOT        = 2000        # max posterior samples to show per method
 _MAD_COLOR     = "darkgreen"   # MAD-path
-_APT1_COLOR    = "steelblue"   # chain 1 (init=zeros)
+_APT1_COLOR    = "steelblue"   # chain 1 (init=0.5)
 _APT2_COLOR    = "mediumpurple"  # chain 2 (init=ones)
 
 
@@ -179,10 +179,10 @@ def make_figure(data: dict, output: str) -> None:
         rng=rng,
     )
 
-    # ── Panel (c): APT-DEO chain 1 (post-burnin, init=zeros) ─────────────────
+    # ── Panel (c): APT-DEO chain 1 (post-burnin, init=0.5) ────────────────────
     _posterior_panel(
         axes[2], apt_post_1, true_positions, anchors,
-        r"APT-DEO (init = $\mathbf{0}_d$)",
+        r"APT-DEO (init = $0.5\mathbf{1}_d$)",
         rng=rng,
     )
 
@@ -245,7 +245,7 @@ def make_figure_traces(data: dict, output: str) -> None:
 
     methods = [
         ("MAD-Path",         mad_burn,   _MAD_COLOR,  0.8),
-        (r"APT-DEO (init = $\mathbf{0}_d$)", apt_burn_1, _APT1_COLOR, 0.7),
+        (r"APT-DEO (init = $0.5\mathbf{1}_d$)", apt_burn_1, _APT1_COLOR, 0.7),
         (r"APT-DEO (init = $\mathbf{1}_d$)", apt_burn_2, _APT2_COLOR, 0.4),
     ]
 
