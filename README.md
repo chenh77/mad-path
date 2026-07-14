@@ -1,8 +1,8 @@
 # Markov Chain Monte Carlo with Diffusion Paths
 
-Code accompanying the paper *Markov Chain Monte Carlo with Diffusion Paths*
-(paper link: coming soon), introducing the
-**Metropolis-adjusted diffusion path (MAD-Path)** sampler — an MCMC algorithm that uses
+Code accompanying the paper 
+[*Markov Chain Monte Carlo with Diffusion Paths*](https://arxiv.org/abs/2607.11631), introducing the
+**Metropolis-adjusted diffusion path (MAD-Path)** sampler—an MCMC algorithm that uses
 trained scores to propose structured, nonlocal moves between isolated regions of
 probability mass, accepted/rejected with a Metropolis–Hastings correction so the chain remains
 exact.
@@ -54,7 +54,7 @@ Most scripts are single-shot:
 
 ```bash
 cd experiments/
-python run_mog.py --seed 0                      # → results/gmm_d20_comparison.npz
+python run_mog.py --seed 0                       # → results/gmm_d20_comparison.npz
 python plot_mog.py                               # → plots/mog-particle-trace.pdf
 
 python run_sensor_network.py                     # → results/sensor_network.npz
@@ -91,4 +91,14 @@ Pass `--help` to any script for its exact options.
 
 ## Citation
 
-The paper is not yet published. A citation (BibTeX) will be added here once it is available.
+```bibtex
+@misc{chen2026markov,
+      title={Markov Chain Monte Carlo with Diffusion Paths},
+      author={Han Chen and Sifan Liu and Jun Yang},
+      year={2026},
+      eprint={2607.11631},
+      archivePrefix={arXiv},
+      primaryClass={stat.CO},
+      url={https://arxiv.org/abs/2607.11631},
+}
+```
