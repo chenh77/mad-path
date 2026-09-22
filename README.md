@@ -89,16 +89,3 @@ Pass `--help` to any script for its exact options.
   DDS controlled SDE used to train MAD-Path's proposal, and why it's better-conditioned than a
   standard (equilibrium) diffusion sampler.
 
-## Citation
-
-```bibtex
-@misc{chen2026markov,
-      title={Markov Chain Monte Carlo with Diffusion Paths},
-      author={Han Chen and Sifan Liu and Jun Yang},
-      year={2026},
-      eprint={2607.11631},
-      archivePrefix={arXiv},
-      primaryClass={stat.CO},
-      url={https://arxiv.org/abs/2607.11631},
-}
-```
